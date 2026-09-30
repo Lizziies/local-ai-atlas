@@ -426,8 +426,13 @@ export function recommend(catalog, rawInput, { limit = 8 } = {}) {
 
   candidates.sort((a, b) => b.score - a.score);
   const usable = candidates.filter(c => c.tier !== 'not-recommended');
-  const top = usable.slice(0, limit);
   const slots = pickSlots(usable, input);
+  // A slot must never point at a candidate that is not in the returned list.
+  if (slots.capability && slots.capability === slots.speed) slots.capability = null;
+  const top = usable.slice(0, limit);
+  for (const id of [slots.start, slots.speed, slots.capability]) {
+    if (id && !top.some(c => c.id === id)) top.push(usable.find(c => c.id === id));
+  }
   const notRecommended = candidates.filter(c => c.tier === 'not-recommended').sort((a, b) => a.memory.totalNeedGiB - b.memory.totalNeedGiB).slice(0, 8)
     .map(c => ({ id: c.id, name: c.name, quant: c.variant.quant, totalNeedGiB: c.memory.totalNeedGiB, reason: c.reasons[c.reasons.length - 1], warnings: c.warnings.filter(w => /vLLM|SGLang|GPU/.test(w)) }));
   return {

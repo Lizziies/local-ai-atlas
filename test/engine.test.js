@@ -164,3 +164,22 @@ test('non-recommendable and cloud entries are never recommended', () => {
   const ids = new Set(r.candidates.map(c => c.id));
   for (const m of catalog.models.filter(m => !m.recommendable)) assert.ok(!ids.has(m.id), m.id);
 });
+
+test('every slot id is present in the returned candidates, across many hardware combinations', () => {
+  const cat = loadCatalog();
+  for (const kind of ['discrete', 'unified', 'cpu']) {
+    for (const mem of [4, 6, 8, 10, 12, 16, 20, 24, 32, 48, 64, 96]) {
+      for (const ram of [8, 16, 32, 64, 128]) {
+        for (const task of ['general', 'coding', 'agent', 'reasoning', 'vision']) {
+          const r = recommend(cat, { memoryKind: kind, gpuVram: mem, systemRam: ram, unifiedMemory: mem, task, context: 32768 });
+          if (!r.ok) continue;
+          const ids = new Set(r.candidates.map(c => c.id));
+          for (const k of ['start', 'speed', 'capability']) {
+            if (r.slots[k]) assert.ok(ids.has(r.slots[k]), `${kind} ${mem}/${ram} ${task}: slot ${k} missing`);
+          }
+          if (r.slots.speed && r.slots.capability) assert.notEqual(r.slots.speed, r.slots.capability);
+        }
+      }
+    }
+  }
+});

@@ -177,9 +177,9 @@
     var html = '<div class="assume"><div>' + budgetLine + '</div><div class="small">Context ' + i.contextTokens.toLocaleString('en-US') + ' tokens · KV cache ' + esc(i.kvCache) + ' · runtime ' + esc(RUNTIME_NAMES[i.runtime] || 'any') + ' · task ' + esc(TASK_NAMES[i.task] || i.task) + '. File sizes are decimal GB; your memory is treated as GiB. Catalogue curated ' + esc(r.catalogCuratedAt) + '.</div>' + hint(i).map(function (h) { return '<div class="small">' + esc(h) + '</div>'; }).join('') + '</div>';
     var byId = {}; r.candidates.forEach(function (c) { byId[c.id] = c; });
     var slots = [];
-    if (r.slots.start) slots.push(['Suggested starting point', byId[r.slots.start]]);
-    if (r.slots.speed) slots.push(['Speed-oriented alternative', byId[r.slots.speed]]);
-    if (r.slots.capability) slots.push(['Higher-capability option requiring more memory / offload', byId[r.slots.capability]]);
+    if (r.slots.start && byId[r.slots.start]) slots.push(['Suggested starting point', byId[r.slots.start]]);
+    if (r.slots.speed && byId[r.slots.speed]) slots.push(['Speed-oriented alternative', byId[r.slots.speed]]);
+    if (r.slots.capability && byId[r.slots.capability]) slots.push(['Higher-capability option requiring more memory / offload', byId[r.slots.capability]]);
     if (!slots.length) {
       html += '<div class="notice-box warn" role="status"><b>Nothing in the curated catalogue fits this setup with the chosen runtime and context.</b> Try a shorter context, a quantised KV cache, another runtime, or adding system RAM for offload.</div>';
     } else {
@@ -308,7 +308,7 @@
     api('/api/recommend', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(body) }).then(function (r) {
       var byId = {}; r.candidates.forEach(function (c) { byId[c.id] = c; });
       var cards = [['Suggested starting point', r.slots.start], ['Speed-oriented alternative', r.slots.speed], ['Higher-capability option requiring more memory', r.slots.capability]].filter(function (x) { return x[1]; });
-      host.innerHTML = cards.map(function (x) { var c = byId[x[1]]; var t = TIER[c.tier]; return '<article class="modelcard fitcard" tabindex="0" role="button" data-model="' + esc(c.id) + '" aria-label="Open model card: ' + esc(c.name) + '"><div class="uk">' + esc(x[0]) + '</div><div class="modelname">' + esc(c.name) + '</div><div class="meta">' + esc(c.variant.quant) + ' · ' + c.variant.sizeGB + ' GB · need ≈ ' + c.memory.totalNeedGiB + ' GiB</div><div class="badges"><span class="tierbadge ' + t[1] + '">' + t[0] + '</span></div><p class="small">' + esc(c.reasons[1] || c.reasons[0]) + '</p></article>'; }).join('') || '<div class="upanel"><p>No entry fits this bucket with these assumptions.</p></div>';
+      host.innerHTML = cards.map(function (x) { var c = byId[x[1]]; if (!c) return ''; var t = TIER[c.tier]; return '<article class="modelcard fitcard" tabindex="0" role="button" data-model="' + esc(c.id) + '" aria-label="Open model card: ' + esc(c.name) + '"><div class="uk">' + esc(x[0]) + '</div><div class="modelname">' + esc(c.name) + '</div><div class="meta">' + esc(c.variant.quant) + ' · ' + c.variant.sizeGB + ' GB · need ≈ ' + c.memory.totalNeedGiB + ' GiB</div><div class="badges"><span class="tierbadge ' + t[1] + '">' + t[0] + '</span></div><p class="small">' + esc(c.reasons[1] || c.reasons[0]) + '</p></article>'; }).join('') || '<div class="upanel"><p>No entry fits this bucket with these assumptions.</p></div>';
       var n = $('#fitNote'); if (n) n.textContent = 'Computed live by the recommendation engine for ' + fitBucket + ' GB VRAM, 32 GB system RAM, 32K context, llama.cpp-compatible builds, general use. Open the chooser above to change any assumption.';
     }).catch(function (e) { host.innerHTML = '<div class="notice-box warn" role="alert">Could not load starting points: ' + esc(errText(e)) + '</div>'; })
       .finally(function () { host.removeAttribute('aria-busy'); });
