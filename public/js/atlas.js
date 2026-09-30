@@ -442,8 +442,28 @@
   }
 
   /* ----------------------------------------------------------------- boot */
+    /* Highlight the section nav pill for the section currently in view. */
+  function initSectionSpy() {
+    var links = $$('.unav a[href^="#"]');
+    if (!links.length || !('IntersectionObserver' in window)) return;
+    var map = {};
+    links.forEach(function (a) { var el = document.getElementById(a.getAttribute('href').slice(1)); if (el) map[el.id] = a; });
+    var current = null;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var a = map[e.target.id]; if (!a || a === current) return;
+        if (current) current.classList.remove('on');
+        a.classList.add('on'); current = a;
+        var bar = a.parentNode;
+        if (bar && bar.scrollWidth > bar.clientWidth) bar.scrollLeft = a.offsetLeft - bar.clientWidth / 2 + a.offsetWidth / 2;
+      });
+    }, { rootMargin: '-25% 0px -60% 0px' });
+    Object.keys(map).forEach(function (id) { io.observe(document.getElementById(id)); });
+  }
+
   function boot() {
-    renderVramButtons(); syncMemoryKind(); renderFitTabs(); bind();
+    renderVramButtons(); syncMemoryKind(); renderFitTabs(); bind(); initSectionSpy();
     var results = Promise.all([api('/api/health'), api('/api/catalog')]);
     results.then(function (r) {
       state.catalog = r[1]; setStatus(true, r[0]);
