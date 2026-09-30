@@ -1,0 +1,565 @@
+{
+  "meta": {
+    "schemaVersion": 2,
+    "curatedAt": "2026-09-30",
+    "policy": "Curated and hand-verified against primary sources on the curation date (vendor pages, official Hugging Face repos and file listings, official GitHub repositories). It is NOT automatically current: model files, licenses and runtime support change. Use the live Hugging Face check on each model card to compare against today's metadata.",
+    "sizeUnit": "All file sizes are decimal GB (1 GB = 1,000,000,000 bytes) as listed by the repository. Users' VRAM/RAM figures are treated as GiB (2^30 bytes) by the recommendation engine because that is how GPUs and RAM kits are sold."
+  },
+  "basis": {
+    "file": "Measured: exact file size from the repository file listing or the repository's own quant table.",
+    "vendor": "Vendor-stated figure (model card / vendor page).",
+    "derived": "Computed by the Atlas from official parameters or config.json (e.g. parameters x bytes, KV-cache from layer counts). Reproducible, but not a vendor statement.",
+    "rough": "Unverified rough estimate kept from the previous Atlas snapshot or extrapolated. Do not rely on it."
+  },
+  "runtimes": [
+    { "id": "llama.cpp", "name": "llama.cpp", "kind": "runtime", "formats": ["gguf"], "license": "MIT", "url": "https://github.com/ggml-org/llama.cpp",
+      "summary": "Portable C/C++ inference engine and the reference implementation for GGUF. Runs on CUDA, Metal, Vulkan, HIP and CPU and can split a model between GPU and system RAM.",
+      "offload": "gpu+cpu", "backends": ["CUDA", "Metal", "Vulkan", "HIP/ROCm", "CPU"], "audience": "power users, servers, scripting",
+      "notes": "MoE expert offload (--n-cpu-moe / --cpu-moe) and KV-cache quantisation (--cache-type-k / --cache-type-v) exist as options; check your build's --help." },
+    { "id": "lm-studio", "name": "LM Studio", "kind": "runtime-app", "formats": ["gguf", "mlx"], "license": "Proprietary, free to use (see LM Studio terms)", "url": "https://lmstudio.ai/",
+      "summary": "Desktop app for discovering, downloading and serving local models through its own llama.cpp and MLX runtimes, with an OpenAI-compatible local server. Also hosts the Bionic agent environment.",
+      "offload": "gpu+cpu", "backends": ["CUDA", "Metal", "Vulkan", "CPU"], "audience": "beginners to intermediate",
+      "notes": "Model support depends on the bundled runtime version; a new architecture may need a runtime update." },
+    { "id": "ollama", "name": "Ollama", "kind": "runtime-app", "formats": ["gguf"], "license": "MIT", "url": "https://ollama.com/",
+      "summary": "Local model runner with a simple CLI and REST API. Pulls models from its own library or imports GGUF files.",
+      "offload": "gpu+cpu", "backends": ["CUDA", "Metal", "ROCm", "CPU"], "audience": "developers",
+      "notes": "Architecture support depends on the Ollama version. Unless a model card lists Ollama, treat support as unverified." },
+    { "id": "vllm", "name": "vLLM", "kind": "runtime", "formats": ["safetensors"], "license": "Apache 2.0", "url": "https://github.com/vllm-project/vllm",
+      "summary": "High-throughput GPU serving engine built around batching and paged KV cache. Designed for models resident in GPU memory (single or multi-GPU); not a typical choice for RAM-offloaded single-user setups.",
+      "offload": "gpu", "backends": ["CUDA", "ROCm"], "audience": "servers, multi-user, multi-GPU", "docs": "https://docs.vllm.ai/",
+      "notes": "Atlas treats a model as vLLM-usable only if it fits in GPU memory." },
+    { "id": "sglang", "name": "SGLang", "kind": "runtime", "formats": ["safetensors"], "license": "Apache 2.0", "url": "https://github.com/sgl-project/sglang",
+      "summary": "GPU serving/runtime system for LLM and multimodal workloads with structured-generation features. Same memory model as vLLM: weights are expected to live in GPU memory.",
+      "offload": "gpu", "backends": ["CUDA", "ROCm"], "audience": "servers, agent backends",
+      "notes": "Atlas treats a model as SGLang-usable only if it fits in GPU memory." },
+    { "id": "mlx", "name": "MLX / MLX-LM", "kind": "runtime", "formats": ["mlx"], "license": "MIT", "url": "https://github.com/ml-explore/mlx",
+      "summary": "Apple's array framework for Apple silicon. Uses unified memory; MLX-format weights are separate downloads from GGUF.",
+      "offload": "unified", "backends": ["Metal (Apple silicon)"], "audience": "Mac users",
+      "notes": "Only relevant on Apple silicon." },
+    { "id": "prismml-llamacpp", "name": "PrismML llama.cpp fork", "kind": "runtime", "formats": ["gguf"], "license": "MIT (fork of llama.cpp)", "url": "https://github.com/PrismML-Eng/llama.cpp",
+      "summary": "Fork of llama.cpp that adds the PTQ1_0 / PQ2_0 low-bit formats used by Bonsai 2 GGUF files. Stock llama.cpp rejects these formats.",
+      "offload": "gpu+cpu", "backends": ["CUDA", "Metal", "Vulkan", "CPU"], "audience": "power users",
+      "notes": "Do not mix the fork's ggml libraries with a stock llama.cpp build (fork README)." },
+    { "id": "transformers", "name": "Hugging Face Transformers", "kind": "library", "formats": ["safetensors"], "license": "Apache 2.0", "url": "https://github.com/huggingface/transformers",
+      "summary": "Reference Python library for research and prototyping. Flexible, but not tuned for lowest memory or highest throughput.",
+      "offload": "gpu+cpu", "backends": ["CUDA", "ROCm", "Metal", "CPU"], "audience": "researchers", "notes": "" }
+  ],
+  "models": [
+    {
+      "id": "gemma-4-e2b", "name": "Gemma 4 E2B", "family": "Gemma 4", "vendor": "Google", "kind": "open-weight",
+      "arch": "dense, per-layer embeddings", "params": { "totalB": 5.1, "activeB": 2.3, "activeLabel": "2.3B effective", "basis": "vendor" },
+      "contextMax": 131072, "modalities": ["text", "image", "audio"], "tasks": ["general", "vision", "reasoning"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived-approx", "layers": [ { "n": 12, "kv": 1, "hd": 256, "w": 512 }, { "n": 3, "kv": 1, "hd": 512, "w": null } ], "note": "Approximation from config.json (35 layers, 20 KV-shared layers); tiny either way." },
+      "variants": [
+        { "q": "Q4_0 (QAT)", "fmt": "gguf", "gb": 3.35, "basis": "file", "mm": 0.99, "mmBasis": "file", "repo": "google/gemma-4-E2B-it-qat-q4_0-gguf", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "BF16", "fmt": "safetensors", "gb": 10.2, "basis": "derived", "repo": "google/gemma-4-E2B-it", "rt": [], "rtLikely": ["vllm", "sglang", "transformers"] }
+      ],
+      "summary": "Smallest Gemma 4 model. Text, image and audio input; aimed at phones, laptops and other constrained devices.",
+      "caveats": ["Google's own memory table lists ~2.9 GB for Q4_0, but the published QAT GGUF file is 3.35 GB, so use the file size."],
+      "links": { "official": "https://ai.google.dev/gemma/docs/core/model_card_4", "hf": "google/gemma-4-E2B-it", "gguf": "google/gemma-4-E2B-it-qat-q4_0-gguf", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "gemma-4-e4b", "name": "Gemma 4 E4B", "family": "Gemma 4", "vendor": "Google", "kind": "open-weight",
+      "arch": "dense, per-layer embeddings", "params": { "totalB": 8, "activeB": 4.5, "activeLabel": "4.5B effective", "basis": "vendor" },
+      "contextMax": 131072, "modalities": ["text", "image", "audio"], "tasks": ["general", "vision", "reasoning", "coding"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived-approx", "layers": [ { "n": 17, "kv": 2, "hd": 256, "w": 512 }, { "n": 7, "kv": 2, "hd": 512, "w": null } ], "note": "Approximation from config.json (42 layers, 18 KV-shared layers)." },
+      "variants": [
+        { "q": "Q4_0 (QAT)", "fmt": "gguf", "gb": 5.15, "basis": "file", "mm": 0.99, "mmBasis": "file", "repo": "google/gemma-4-E4B-it-qat-q4_0-gguf", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "BF16", "fmt": "safetensors", "gb": 16, "basis": "derived", "repo": "google/gemma-4-E4B-it", "rt": [], "rtLikely": ["vllm", "sglang", "transformers"] }
+      ],
+      "summary": "Compact multimodal model with audio input, a step up from E2B while still laptop-friendly.",
+      "caveats": [],
+      "links": { "official": "https://ai.google.dev/gemma/docs/core/model_card_4", "hf": "google/gemma-4-E4B-it", "gguf": "google/gemma-4-E4B-it-qat-q4_0-gguf", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "gemma-4-12b", "name": "Gemma 4 12B", "family": "Gemma 4", "vendor": "Google", "kind": "open-weight",
+      "arch": "dense", "params": { "totalB": 11.95, "activeB": 11.95, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image", "audio"], "tasks": ["general", "vision", "reasoning", "coding", "long-context"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 40, "kv": 8, "hd": 256, "w": 1024 }, { "n": 8, "kv": 1, "hd": 512, "w": null } ], "src": "https://huggingface.co/google/gemma-4-12B-it/raw/main/config.json", "note": "Sliding-window layers are capped at 1,024 tokens. Global layers counted with separate K and V, so this is an upper bound (config sets attention_k_eq_v)." },
+      "variants": [
+        { "q": "Q4_0 (QAT)", "fmt": "gguf", "gb": 6.98, "basis": "file", "mm": 0.18, "mmBasis": "file", "repo": "google/gemma-4-12B-it-qat-q4_0-gguf", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "BF16", "fmt": "safetensors", "gb": 23.9, "basis": "derived", "repo": "google/gemma-4-12B-it", "rt": [], "rtLikely": ["vllm", "sglang", "transformers"] }
+      ],
+      "summary": "Unified multimodal model (text, image, native audio input) that fits comfortably on 12 GB-class GPUs at 4-bit.",
+      "caveats": [],
+      "links": { "official": "https://ai.google.dev/gemma/docs/core/model_card_4", "hf": "google/gemma-4-12B-it", "gguf": "google/gemma-4-12B-it-qat-q4_0-gguf", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "gemma-4-26b-a4b", "name": "Gemma 4 26B A4B", "family": "Gemma 4", "vendor": "Google", "kind": "open-weight",
+      "arch": "mixture-of-experts (128 experts, 8 active + 1 shared)", "params": { "totalB": 25.2, "activeB": 3.8, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image"], "tasks": ["general", "vision", "reasoning", "coding", "long-context"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 24, "kv": 8, "hd": 256, "w": 1024 }, { "n": 6, "kv": 2, "hd": 512, "w": null } ], "src": "https://huggingface.co/google/gemma-4-26B-A4B-it/raw/main/config.json", "note": "Upper bound; see Gemma 4 12B." },
+      "variants": [
+        { "q": "Q4_0 (QAT)", "fmt": "gguf", "gb": 14.44, "basis": "file", "mm": 1.19, "mmBasis": "file", "repo": "google/gemma-4-26B-A4B-it-qat-q4_0-gguf", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "BF16", "fmt": "safetensors", "gb": 50.4, "basis": "derived", "repo": "google/gemma-4-26B-A4B-it", "rt": [], "rtLikely": ["vllm", "sglang", "transformers"] }
+      ],
+      "summary": "MoE model: all 25.2B parameters must be stored, but only about 3.8B are active per token, which usually makes generation fast for its size.",
+      "caveats": ["Storage follows TOTAL parameters; speed follows ACTIVE parameters."],
+      "links": { "official": "https://ai.google.dev/gemma/docs/core/model_card_4", "hf": "google/gemma-4-26B-A4B-it", "gguf": "google/gemma-4-26B-A4B-it-qat-q4_0-gguf", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "gemma-4-31b", "name": "Gemma 4 31B", "family": "Gemma 4", "vendor": "Google", "kind": "open-weight",
+      "arch": "dense", "params": { "totalB": 30.7, "activeB": 30.7, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image"], "tasks": ["general", "vision", "reasoning", "coding", "long-context"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 48, "kv": 16, "hd": 256, "w": 1024 }, { "n": 12, "kv": 4, "hd": 512, "w": null } ], "src": "https://huggingface.co/google/gemma-4-31B-it/raw/main/config.json", "note": "Upper bound; see Gemma 4 12B." },
+      "variants": [
+        { "q": "Q4_0 (QAT)", "fmt": "gguf", "gb": 17.65, "basis": "file", "mm": 1.2, "mmBasis": "file", "repo": "google/gemma-4-31B-it-qat-q4_0-gguf", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "BF16", "fmt": "safetensors", "gb": 61.4, "basis": "derived", "repo": "google/gemma-4-31B-it", "rt": [], "rtLikely": ["vllm", "sglang", "transformers"] }
+      ],
+      "summary": "Largest dense Gemma 4 model; a 4-bit build targets 24 GB-class GPUs.",
+      "caveats": [],
+      "links": { "official": "https://ai.google.dev/gemma/docs/core/model_card_4", "hf": "google/gemma-4-31B-it", "gguf": "google/gemma-4-31B-it-qat-q4_0-gguf", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "qwen3.8-27b", "name": "Qwen3.8 27B", "family": "Qwen3.8", "vendor": "Alibaba Qwen", "kind": "open-weight",
+      "arch": "dense, hybrid attention (48 Gated DeltaNet + 16 full-attention layers)", "params": { "totalB": 27.78, "activeB": 27.78, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image", "video"], "tasks": ["general", "coding", "reasoning", "vision", "agent", "long-context"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 16, "kv": 4, "hd": 256, "w": null } ], "src": "https://huggingface.co/Qwen/Qwen3.8-27B/raw/main/config.json", "note": "Only the 16 full-attention layers keep a growing KV cache; the 48 linear-attention layers keep a fixed-size state (not modelled)." },
+      "variants": [
+        { "q": "Q3_K_M", "fmt": "gguf", "gb": 13.4, "basis": "file", "mm": 0.9, "mmBasis": "derived", "repo": "bartowski/Qwen3.8-27B-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q4_K_M", "fmt": "gguf", "gb": 17.44, "basis": "file", "mm": 0.9, "mmBasis": "derived", "repo": "bartowski/Qwen3.8-27B-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q5_K_M", "fmt": "gguf", "gb": 20.92, "basis": "file", "mm": 0.9, "mmBasis": "derived", "repo": "bartowski/Qwen3.8-27B-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q6_K", "fmt": "gguf", "gb": 23.86, "basis": "file", "mm": 0.9, "mmBasis": "derived", "repo": "bartowski/Qwen3.8-27B-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q8_0", "fmt": "gguf", "gb": 29.12, "basis": "file", "mm": 0.9, "mmBasis": "derived", "repo": "bartowski/Qwen3.8-27B-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "FP8", "fmt": "safetensors", "gb": 24.56, "basis": "file", "repo": "Qwen/Qwen3.8-27B-FP8", "rt": ["vllm", "sglang", "transformers"], "rtLikely": [] },
+        { "q": "BF16", "fmt": "safetensors", "gb": 59.56, "basis": "file", "repo": "Qwen/Qwen3.8-27B", "rt": ["vllm", "sglang", "transformers"], "rtLikely": [] }
+      ],
+      "summary": "Native multimodal dense 27B model aimed at coding, professional work and long-horizon agent tasks. Thinking mode is on by default with adjustable reasoning effort.",
+      "caveats": ["The vision projector (mmproj) size shown is a derived estimate from the vision-tower config, not a measured file.", "LM Studio's listing states a 16 GB minimum system memory; this is a floor for its smallest build, not a comfortable setup."],
+      "links": { "official": "https://huggingface.co/Qwen/Qwen3.8-27B", "hf": "Qwen/Qwen3.8-27B", "gguf": "bartowski/Qwen3.8-27B-GGUF", "lmStudio": "https://lmstudio.ai/models/qwen/qwen3.8-27b", "github": "https://github.com/QwenLM" }
+    },
+    {
+      "id": "bonsai-2-27b", "name": "Bonsai 2 27B (Ternary)", "family": "Bonsai 2", "vendor": "PrismML", "kind": "open-weight",
+      "arch": "ternary-quantised derivative of Qwen3.8 27B (hybrid attention)", "params": { "totalB": 27.36, "activeB": 27.36, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image"], "tasks": ["general", "coding", "reasoning", "vision", "agent"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 16, "kv": 4, "hd": 256, "w": null } ], "src": "https://huggingface.co/Qwen/Qwen3.8-27B/raw/main/config.json", "note": "Assumed identical to the Qwen3.8 27B base architecture." },
+      "variants": [
+        { "q": "PTQ1_0 (1.75 bpw)", "fmt": "gguf", "gb": 5.95, "basis": "file", "mm": 0.63, "mmBasis": "file", "repo": "prism-ml/Ternary-Bonsai-2-27B-gguf", "rt": ["prismml-llamacpp"], "rtLikely": [] },
+        { "q": "PQ2_0 (2.13 bpw)", "fmt": "gguf", "gb": 7.21, "basis": "file", "mm": 0.63, "mmBasis": "file", "repo": "prism-ml/Ternary-Bonsai-2-27B-gguf", "rt": ["prismml-llamacpp"], "rtLikely": [] }
+      ],
+      "summary": "Very compact 27B-class model: the GGUF files are 5.95-7.21 GB. PrismML reports 98.2% aggregate benchmark retention against full-precision Qwen3.8 27B (publisher-reported).",
+      "caveats": [
+        "Runtime restriction: the Bonsai 2 GGUF files need PrismML's llama.cpp fork (CUDA, Metal, Vulkan or CPU). Stock llama.cpp rejects the PTQ1_0/PQ2_0 formats or loads them incorrectly (Hugging Face model card). It is therefore not a drop-in model for stock LM Studio, Ollama, vLLM or SGLang.",
+        "MLX builds for Apple devices exist (prism-ml/Ternary-Bonsai-2-27B-mlx-2bit); their file size was not verified in this audit.",
+        "Benchmark numbers are PrismML's own aggregates, not independent measurements."
+      ],
+      "links": { "official": "https://prismml.com/news/bonsai-2-27b", "hf": "prism-ml/Ternary-Bonsai-2-27B-gguf", "gguf": "prism-ml/Ternary-Bonsai-2-27B-gguf", "github": "https://github.com/PrismML-Eng/llama.cpp" }
+    },
+    {
+      "id": "bonsai-27b", "name": "Bonsai 27B (v1, 1-bit / ternary)", "family": "Bonsai", "vendor": "PrismML", "kind": "open-weight",
+      "arch": "low-bit quantised 27B, vision-capable", "params": { "totalB": 27, "activeB": 27, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image"], "tasks": ["general", "reasoning", "vision", "agent"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "rough", "bytesPerToken": 65536, "note": "Assumed similar to Qwen3.8 27B; unverified for v1." },
+      "variants": [
+        { "q": "1-bit", "fmt": "gguf", "gb": 3.9, "basis": "vendor", "mm": 0.63, "mmBasis": "rough", "repo": "lmstudio-community/Bonsai-27B-GGUF", "rt": ["lm-studio"], "rtLikely": ["llama.cpp"] },
+        { "q": "Ternary", "fmt": "gguf", "gb": 7.2, "basis": "vendor", "mm": 0.63, "mmBasis": "rough", "repo": "lmstudio-community/Bonsai-27B-GGUF", "rt": ["lm-studio"], "rtLikely": ["llama.cpp"] }
+      ],
+      "summary": "First-generation Bonsai 27B. LM Studio's model page states it runs on LM Studio's stock llama.cpp runtime, with roughly 3.9 GB (1-bit) and 7.2 GB (ternary) footprints.",
+      "caveats": ["Vendor-stated footprints from the LM Studio page; the exact file sizes were not measured in this audit.", "Extreme low-bit quantisation can cost quality on some tasks; test on your own workload."],
+      "links": { "official": "https://lmstudio.ai/models/bonsai-27b", "hf": "lmstudio-community/Bonsai-27B-GGUF", "gguf": "lmstudio-community/Bonsai-27B-GGUF", "lmStudio": "https://lmstudio.ai/models/bonsai-27b" }
+    },
+    {
+      "id": "qwen3.5-4b", "name": "Qwen3.5 4B", "family": "Qwen3.5", "vendor": "Alibaba Qwen", "kind": "open-weight",
+      "arch": "dense, hybrid attention", "params": { "totalB": 4, "activeB": 4, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image"], "tasks": ["general", "vision", "reasoning"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "rough", "bytesPerToken": 24576, "note": "Config not read for this size; rough value." },
+      "variants": [
+        { "q": "Q4_K_M", "fmt": "gguf", "gb": 3.01, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-4B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q6_K", "fmt": "gguf", "gb": 3.81, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-4B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q8_0", "fmt": "gguf", "gb": 4.62, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-4B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] }
+      ],
+      "summary": "Small multimodal Qwen3.5 model for low-memory devices.",
+      "caveats": [], "links": { "official": "https://huggingface.co/Qwen/Qwen3.5-4B", "hf": "Qwen/Qwen3.5-4B", "gguf": "bartowski/Qwen_Qwen3.5-4B-GGUF", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "qwen3.5-9b", "name": "Qwen3.5 9B", "family": "Qwen3.5", "vendor": "Alibaba Qwen", "kind": "open-weight",
+      "arch": "dense, hybrid attention (24 linear + 8 full-attention layers)", "params": { "totalB": 9.65, "activeB": 9.65, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image"], "tasks": ["general", "coding", "reasoning", "vision"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 8, "kv": 4, "hd": 256, "w": null } ], "src": "https://huggingface.co/Qwen/Qwen3.5-9B/raw/main/config.json", "note": "Full-attention layers only." },
+      "variants": [
+        { "q": "Q3_K_M", "fmt": "gguf", "gb": 5.18, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-9B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q4_K_M", "fmt": "gguf", "gb": 6.17, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-9B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q6_K", "fmt": "gguf", "gb": 7.96, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-9B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q8_0", "fmt": "gguf", "gb": 9.8, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-9B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] }
+      ],
+      "summary": "Small multimodal generalist with a very long native context and a compact KV cache thanks to hybrid attention.",
+      "caveats": [], "links": { "official": "https://huggingface.co/Qwen/Qwen3.5-9B", "hf": "Qwen/Qwen3.5-9B", "gguf": "bartowski/Qwen_Qwen3.5-9B-GGUF", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "qwen3.5-27b", "name": "Qwen3.5 27B", "family": "Qwen3.5", "vendor": "Alibaba Qwen", "kind": "open-weight",
+      "arch": "dense, hybrid attention", "params": { "totalB": 27.78, "activeB": 27.78, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image"], "tasks": ["general", "coding", "reasoning", "vision", "agent"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 16, "kv": 4, "hd": 256, "w": null } ], "src": "https://huggingface.co/Qwen/Qwen3.8-27B/raw/main/config.json", "note": "Same parameter count and architecture family as Qwen3.8 27B; assumed identical layer layout." },
+      "variants": [
+        { "q": "Q3_K_M", "fmt": "gguf", "gb": 14.82, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-27B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q4_K_M", "fmt": "gguf", "gb": 17.98, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-27B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q6_K", "fmt": "gguf", "gb": 23.68, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-27B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q8_0", "fmt": "gguf", "gb": 29.12, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-27B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] }
+      ],
+      "summary": "Previous-generation dense 27B in the Qwen3.5 family; Qwen3.8 27B is the newer model at the same size.",
+      "caveats": [], "links": { "official": "https://huggingface.co/Qwen/Qwen3.5-27B", "hf": "Qwen/Qwen3.5-27B", "gguf": "bartowski/Qwen_Qwen3.5-27B-GGUF", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "qwen3.5-35b-a3b", "name": "Qwen3.5 35B A3B", "family": "Qwen3.5", "vendor": "Alibaba Qwen", "kind": "open-weight",
+      "arch": "mixture-of-experts (256 experts, 8 active), hybrid attention", "params": { "totalB": 35.95, "activeB": 3, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image"], "tasks": ["general", "coding", "reasoning", "vision", "agent"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 10, "kv": 2, "hd": 256, "w": null } ], "src": "https://huggingface.co/Qwen/Qwen3.5-35B-A3B/raw/main/config.json", "note": "10 full-attention layers of 40." },
+      "variants": [
+        { "q": "Q3_K_M", "fmt": "gguf", "gb": 17.12, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-35B-A3B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q4_K_M", "fmt": "gguf", "gb": 22.29, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-35B-A3B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q5_K_M", "fmt": "gguf", "gb": 25.91, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-35B-A3B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q6_K", "fmt": "gguf", "gb": 30.95, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-35B-A3B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q8_0", "fmt": "gguf", "gb": 37.81, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/Qwen_Qwen3.5-35B-A3B-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "FP8", "fmt": "safetensors", "gb": 37.42, "basis": "file", "repo": "Qwen/Qwen3.5-35B-A3B-FP8", "rt": [], "rtLikely": ["vllm", "sglang", "transformers"] }
+      ],
+      "summary": "Sparse MoE: about 36B parameters stored, about 3B active per token. Storage needs are those of a ~36B model, but generation speed is closer to a ~3B model, and MoE expert offload to system RAM is a common way to run it on smaller GPUs.",
+      "caveats": ["Total parameter count (35.95B) is the Hugging Face safetensors total and includes the vision tower."],
+      "links": { "official": "https://huggingface.co/Qwen/Qwen3.5-35B-A3B", "hf": "Qwen/Qwen3.5-35B-A3B", "gguf": "bartowski/Qwen_Qwen3.5-35B-A3B-GGUF", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "qwen3-coder-30b-a3b", "name": "Qwen3-Coder 30B A3B", "family": "Qwen3-Coder", "vendor": "Alibaba Qwen", "kind": "open-weight",
+      "arch": "mixture-of-experts (128 experts, 8 active)", "params": { "totalB": 30.53, "activeB": 3, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text"], "tasks": ["coding", "agent"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 48, "kv": 4, "hd": 128, "w": null } ], "src": "https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct/raw/main/config.json", "note": "Standard full attention in every layer, so KV cache grows quickly with context." },
+      "variants": [
+        { "q": "Q3_K_M", "fmt": "gguf", "gb": 14.7, "basis": "file", "repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q4_K_M", "fmt": "gguf", "gb": 18.6, "basis": "file", "repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q5_K_M", "fmt": "gguf", "gb": 21.7, "basis": "file", "repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q6_K", "fmt": "gguf", "gb": 25.1, "basis": "file", "repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q8_0", "fmt": "gguf", "gb": 32.5, "basis": "file", "repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] }
+      ],
+      "summary": "Coding-focused MoE (about 30B stored, about 3B active). Text-only; no vision.",
+      "caveats": ["Active parameters shown as ~3B per LM Studio's listing."],
+      "links": { "official": "https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct", "hf": "Qwen/Qwen3-Coder-30B-A3B-Instruct", "gguf": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "qwen3-coder-next", "name": "Qwen3-Coder-Next", "family": "Qwen3-Coder", "vendor": "Alibaba Qwen", "kind": "open-weight",
+      "arch": "mixture-of-experts (512 experts, 10 active + 1 shared), hybrid Gated DeltaNet / attention", "params": { "totalB": 80, "activeB": 3, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text"], "tasks": ["coding", "agent"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived-approx", "layers": [ { "n": 12, "kv": 2, "hd": 256, "w": null } ], "src": "https://huggingface.co/Qwen/Qwen3-Coder-Next", "note": "Assumes the documented 12 x (3 DeltaNet + 1 attention) layout with 2 KV heads of 256 dims." },
+      "variants": [
+        { "q": "Q2_K", "fmt": "gguf", "gb": 29.22, "basis": "file", "repo": "unsloth/Qwen3-Coder-Next-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q3_K_M", "fmt": "gguf", "gb": 38.32, "basis": "file", "repo": "unsloth/Qwen3-Coder-Next-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "IQ4_XS", "fmt": "gguf", "gb": 42.68, "basis": "file", "repo": "unsloth/Qwen3-Coder-Next-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q4_K_M", "fmt": "gguf", "gb": 48.53, "basis": "file", "repo": "unsloth/Qwen3-Coder-Next-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "BF16", "fmt": "safetensors", "gb": 160, "basis": "derived", "repo": "Qwen/Qwen3-Coder-Next", "rt": ["vllm", "sglang", "transformers"], "rtLikely": [] }
+      ],
+      "summary": "80B total / 3B active MoE built for coding agents and tool calling. The model card recommends lowering the context (e.g. to 32,768) if you hit out-of-memory errors.",
+      "caveats": ["Text-only. Needs roughly 30-50 GB of combined memory even at 2-4 bit, which usually means RAM offload on consumer GPUs."],
+      "links": { "official": "https://huggingface.co/Qwen/Qwen3-Coder-Next", "hf": "Qwen/Qwen3-Coder-Next", "gguf": "unsloth/Qwen3-Coder-Next-GGUF", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "qwen3.8-flash-next", "name": "Qwen3.8 Flash Next (preview)", "family": "Qwen3.8", "vendor": "Alibaba Qwen", "kind": "open-weight",
+      "arch": "mixture-of-experts (512 experts, 10 routed + 1 shared), hybrid Gated DeltaNet + Qwen Sparse Attention", "params": { "totalB": 125, "activeB": 6, "activeLabel": "6B active (+51B n-gram embedding, +4B MTP)", "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image", "video"], "tasks": ["general", "coding", "reasoning", "vision", "agent", "long-context"],
+      "license": "qwen-community-1.0 (read the license before use)", "status": "experimental-preview", "recommendable": true,
+      "kv": { "basis": "rough", "bytesPerToken": 24576, "note": "Architecture differs from Qwen3.5/3.8; KV layout not verified." },
+      "variants": [
+        { "q": "UD-IQ1_S", "fmt": "gguf", "gb": 72.5, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "unsloth/Qwen3.8-Flash-Next-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": [] },
+        { "q": "UD-Q2_K_XL", "fmt": "gguf", "gb": 78.9, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "unsloth/Qwen3.8-Flash-Next-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": [] },
+        { "q": "UD-IQ4_XS", "fmt": "gguf", "gb": 93.7, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "unsloth/Qwen3.8-Flash-Next-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": [] },
+        { "q": "UD-Q4_K_XL", "fmt": "gguf", "gb": 111, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "unsloth/Qwen3.8-Flash-Next-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": [] },
+        { "q": "Q8_0", "fmt": "gguf", "gb": 192, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "unsloth/Qwen3.8-Flash-Next-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": [] }
+      ],
+      "summary": "Experimental preview of the architecture Qwen says will underpin Qwen4. Server-class memory needs: LM Studio lists 96 GB minimum system memory.",
+      "caveats": ["Experimental preview: expect changes and rough edges.", "The Hugging Face card recommends dedicated serving engines (SGLang, vLLM, KTransformers) for production."],
+      "links": { "official": "https://huggingface.co/Qwen/Qwen3.8-Flash-Next", "hf": "Qwen/Qwen3.8-Flash-Next", "gguf": "unsloth/Qwen3.8-Flash-Next-GGUF", "lmStudio": "https://lmstudio.ai/models/qwen/qwen3.8-flash-next" }
+    },
+    {
+      "id": "gpt-oss-20b", "name": "gpt-oss-20b", "family": "gpt-oss", "vendor": "OpenAI", "kind": "open-weight",
+      "arch": "mixture-of-experts (32 experts, 4 active), MXFP4 weights", "params": { "totalB": 21, "activeB": 3.6, "basis": "vendor" },
+      "contextMax": 131072, "modalities": ["text"], "tasks": ["reasoning", "coding", "agent", "general"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 12, "kv": 8, "hd": 64, "w": null }, { "n": 12, "kv": 8, "hd": 64, "w": 128 } ], "src": "https://huggingface.co/openai/gpt-oss-20b/raw/main/config.json", "note": "Alternating full and 128-token sliding-window attention." },
+      "variants": [
+        { "q": "MXFP4", "fmt": "gguf", "gb": 12.11, "basis": "file", "repo": "ggml-org/gpt-oss-20b-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "MXFP4 (native)", "fmt": "safetensors", "gb": 13.76, "basis": "file", "repo": "openai/gpt-oss-20b", "rt": ["vllm", "sglang", "transformers", "ollama"], "rtLikely": [] }
+      ],
+      "summary": "OpenAI describes it as running within 16 GB of memory. MXFP4 is the model's native weight format, so there is no higher-quality quant to move up to.",
+      "caveats": ["Text-only.", "Configurable reasoning effort; reasoning tokens count against generation time."],
+      "links": { "official": "https://developers.openai.com/api/docs/models/gpt-oss-20b", "hf": "openai/gpt-oss-20b", "gguf": "ggml-org/gpt-oss-20b-GGUF", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "gpt-oss-120b", "name": "gpt-oss-120b", "family": "gpt-oss", "vendor": "OpenAI", "kind": "open-weight",
+      "arch": "mixture-of-experts, MXFP4 weights", "params": { "totalB": 117, "activeB": 5.1, "basis": "vendor" },
+      "contextMax": 131072, "modalities": ["text"], "tasks": ["reasoning", "coding", "agent", "general"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 18, "kv": 8, "hd": 64, "w": null }, { "n": 18, "kv": 8, "hd": 64, "w": 128 } ], "src": "https://huggingface.co/openai/gpt-oss-120b/raw/main/config.json", "note": "Alternating full and 128-token sliding-window attention." },
+      "variants": [
+        { "q": "MXFP4", "fmt": "gguf", "gb": 63.39, "basis": "file", "repo": "ggml-org/gpt-oss-120b-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "MXFP4 (native)", "fmt": "safetensors", "gb": 58.42, "basis": "file", "repo": "openai/gpt-oss-120b", "rt": ["vllm", "sglang", "transformers"], "rtLikely": [] }
+      ],
+      "summary": "OpenAI states it fits on a single 80 GB GPU (H100 / MI300X class). On consumer hardware it needs about 64 GB+ of combined memory; MoE expert offload to system RAM is the usual approach.",
+      "caveats": ["Text-only."],
+      "links": { "official": "https://developers.openai.com/api/docs/models/gpt-oss-120b", "hf": "openai/gpt-oss-120b", "gguf": "ggml-org/gpt-oss-120b-GGUF", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "devstral-small-2", "name": "Devstral Small 2 (24B)", "family": "Devstral 2", "vendor": "Mistral AI", "kind": "open-weight",
+      "arch": "dense", "params": { "totalB": 24.01, "activeB": 24.01, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image"], "tasks": ["coding", "agent", "vision"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "derived", "layers": [ { "n": 40, "kv": 8, "hd": 128, "w": null } ], "src": "https://huggingface.co/mistralai/Devstral-Small-2-24B-Instruct-2512/raw/main/config.json", "note": "Standard full attention; the KV cache is large at long context." },
+      "variants": [
+        { "q": "Q3_K_M", "fmt": "gguf", "gb": 11.47, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q4_K_M", "fmt": "gguf", "gb": 14.33, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q5_K_M", "fmt": "gguf", "gb": 16.76, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q6_K", "fmt": "gguf", "gb": 19.35, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] },
+        { "q": "Q8_0", "fmt": "gguf", "gb": 25.06, "basis": "file", "mm": 0.9, "mmBasis": "rough", "repo": "bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF", "rt": ["llama.cpp", "lm-studio", "ollama"], "rtLikely": [] }
+      ],
+      "summary": "24B agentic-coding model from Mistral (codebase exploration, multi-file edits, tool use) with image input.",
+      "caveats": ["Context is stated as 256K; the config lists a larger position limit."],
+      "links": { "official": "https://huggingface.co/mistralai/Devstral-Small-2-24B-Instruct-2512", "hf": "mistralai/Devstral-Small-2-24B-Instruct-2512", "gguf": "bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "devstral-2-123b", "name": "Devstral 2 (123B)", "family": "Devstral 2", "vendor": "Mistral AI", "kind": "open-weight",
+      "arch": "dense", "params": { "totalB": 123, "activeB": 123, "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text"], "tasks": ["coding", "agent"],
+      "license": "Modified MIT (read the terms)", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 196608 },
+      "variants": [],
+      "summary": "123B dense agentic-coding model (Mistral reports 72.2% on SWE-bench Verified). Server-class: FP8 weights alone are on the order of 125 GB. No GGUF sizes were verified in this audit; a 4-bit build would be roughly 70-75 GB by simple parameters x bits arithmetic (estimate).",
+      "caveats": ["Modified MIT license with usage conditions.", "Not offered by the recommender because no measured quant sizes were verified."],
+      "links": { "official": "https://huggingface.co/mistralai/Devstral-2-123B-Instruct-2512", "hf": "mistralai/Devstral-2-123B-Instruct-2512", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "ministral-3-8b", "name": "Ministral 3 8B", "family": "Ministral 3", "vendor": "Mistral AI", "kind": "open-weight",
+      "arch": "dense", "params": { "totalB": 8, "activeB": 8, "basis": "vendor" },
+      "contextMax": 131072, "modalities": ["text", "image"], "tasks": ["general", "vision", "reasoning"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "rough", "bytesPerToken": 131072, "note": "Config not read; typical dense 8B-class value." },
+      "variants": [
+        { "q": "Q4_K_M", "fmt": "gguf", "gb": 5.2, "basis": "file", "mm": 0.86, "mmBasis": "file", "repo": "mistralai/Ministral-3-8B-Instruct-2512-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q5_K_M", "fmt": "gguf", "gb": 6.06, "basis": "file", "mm": 0.86, "mmBasis": "file", "repo": "mistralai/Ministral-3-8B-Instruct-2512-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q8_0", "fmt": "gguf", "gb": 9.03, "basis": "file", "mm": 0.86, "mmBasis": "file", "repo": "mistralai/Ministral-3-8B-Instruct-2512-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] }
+      ],
+      "summary": "Compact Mistral model with vision, released as Instruct, Reasoning and Base variants.",
+      "caveats": ["Context limit and KV layout not verified in this audit (rough values)."],
+      "links": { "official": "https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512", "hf": "mistralai/Ministral-3-8B-Instruct-2512", "gguf": "mistralai/Ministral-3-8B-Instruct-2512-GGUF", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "ministral-3-14b", "name": "Ministral 3 14B", "family": "Ministral 3", "vendor": "Mistral AI", "kind": "open-weight",
+      "arch": "dense", "params": { "totalB": 13.95, "activeB": 13.95, "basis": "vendor" },
+      "contextMax": 131072, "modalities": ["text", "image"], "tasks": ["general", "vision", "reasoning", "coding"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": true,
+      "kv": { "basis": "rough", "bytesPerToken": 163840, "note": "Config not read; typical dense 14B-class value." },
+      "variants": [
+        { "q": "Q4_K_M", "fmt": "gguf", "gb": 8.24, "basis": "file", "mm": 0.88, "mmBasis": "file", "repo": "mistralai/Ministral-3-14B-Instruct-2512-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q5_K_M", "fmt": "gguf", "gb": 9.62, "basis": "file", "mm": 0.88, "mmBasis": "file", "repo": "mistralai/Ministral-3-14B-Instruct-2512-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] },
+        { "q": "Q8_0", "fmt": "gguf", "gb": 14.36, "basis": "file", "mm": 0.88, "mmBasis": "file", "repo": "mistralai/Ministral-3-14B-Instruct-2512-GGUF", "rt": ["llama.cpp", "lm-studio"], "rtLikely": ["ollama"] }
+      ],
+      "summary": "Largest Ministral 3 size; a 4-bit build fits 12 GB GPUs with moderate context.",
+      "caveats": ["Context limit and KV layout not verified in this audit (rough values)."],
+      "links": { "official": "https://huggingface.co/mistralai/Ministral-3-14B-Instruct-2512", "hf": "mistralai/Ministral-3-14B-Instruct-2512", "gguf": "mistralai/Ministral-3-14B-Instruct-2512-GGUF", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "family": "DeepSeek V4", "vendor": "DeepSeek", "kind": "open-weight",
+      "arch": "mixture-of-experts", "params": { "totalB": 284, "activeB": 13, "basis": "vendor" },
+      "contextMax": 1000000, "modalities": ["text"], "tasks": ["coding", "reasoning", "agent", "long-context"],
+      "license": "MIT", "status": "stable", "recommendable": true,
+      "kv": { "basis": "rough", "bytesPerToken": 32768, "note": "KV layout not verified; long contexts (up to 1M) may need far more memory." },
+      "variants": [
+        { "q": "LM Studio GGUF (single listed build)", "fmt": "gguf", "gb": 156.4, "basis": "file", "rt": ["lm-studio"], "rtLikely": ["llama.cpp"] }
+      ],
+      "summary": "284B total / 13B active MoE with a 1M-token context. LM Studio lists a single 156.40 GB download and a 156 GB minimum system memory, and also offers it through Bionic cloud.",
+      "caveats": ["Text-only per Hugging Face (pipeline tag text-generation) and LM Studio's capability list (tool use, reasoning). An earlier Atlas snapshot listed vision; that was not supported by these sources."],
+      "links": { "official": "https://lmstudio.ai/models/deepseek-v4-flash", "hf": "deepseek-ai/DeepSeek-V4-Flash", "lmStudio": "https://lmstudio.ai/models/deepseek-v4-flash", "github": "https://github.com/deepseek-ai/DeepSeek-V4" }
+    },
+    {
+      "id": "deepseek-v4-pro", "name": "DeepSeek V4 Pro", "family": "DeepSeek V4", "vendor": "DeepSeek", "kind": "open-weight-server",
+      "arch": "mixture-of-experts", "params": { "totalB": 1600, "activeB": 49, "basis": "vendor" },
+      "contextMax": 1000000, "modalities": ["text"], "tasks": ["coding", "reasoning", "agent", "long-context"],
+      "license": "MIT", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 65536 }, "variants": [],
+      "summary": "1.6T total / 49B active. Open weights exist on Hugging Face (MIT), but LM Studio offers it as a cloud-only model. There is no consumer-hardware configuration.",
+      "caveats": ["Server/cloud tier only."],
+      "links": { "official": "https://lmstudio.ai/models/deepseek-v4-pro", "hf": "deepseek-ai/DeepSeek-V4-Pro", "lmStudio": "https://lmstudio.ai/models/deepseek-v4-pro" }
+    },
+    {
+      "id": "mistral-small-4", "name": "Mistral Small 4", "family": "Mistral Small", "vendor": "Mistral AI", "kind": "open-weight-server",
+      "arch": "mixture-of-experts (128 experts, 4 active)", "params": { "totalB": 119, "activeB": 6, "activeLabel": "6B active (8B incl. embeddings/output)", "basis": "vendor" },
+      "contextMax": 262144, "modalities": ["text", "image"], "tasks": ["general", "reasoning", "coding", "agent", "vision"],
+      "license": "Apache 2.0", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 65536 }, "variants": [],
+      "summary": "Mistral lists minimum infrastructure of 4x H100, 2x H200 or 1x DGX B200, so it is a server-class open-weight model.",
+      "caveats": ["Not offered by the recommender: no verified consumer-hardware builds."],
+      "links": { "official": "https://mistral.ai/news/mistral-small-4/" }
+    },
+    {
+      "id": "llama-4-scout", "name": "Llama 4 Scout", "family": "Llama 4", "vendor": "Meta", "kind": "open-weight-server",
+      "arch": "mixture-of-experts (16 experts), multimodal", "params": { "totalB": null, "activeB": 17, "activeLabel": "17B active", "basis": "vendor" },
+      "contextMax": null, "modalities": ["text", "image"], "tasks": ["general", "reasoning", "vision", "long-context"],
+      "license": "Llama 4 Community License", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 65536 }, "variants": [],
+      "summary": "Meta describes Scout as 17B active with 16 experts and long-context capability; INT4 is targeted at high-end accelerator hardware. Total parameter count and context limit were not re-verified in this audit.",
+      "caveats": ["Open-weight does not mean easy to run."],
+      "links": { "official": "https://ai.meta.com/blog/llama-4-multimodal-intelligence/" }
+    },
+    {
+      "id": "llama-4-maverick", "name": "Llama 4 Maverick", "family": "Llama 4", "vendor": "Meta", "kind": "open-weight-server",
+      "arch": "mixture-of-experts (128 experts), multimodal", "params": { "totalB": null, "activeB": 17, "activeLabel": "17B active", "basis": "vendor" },
+      "contextMax": null, "modalities": ["text", "image"], "tasks": ["general", "reasoning", "vision"],
+      "license": "Llama 4 Community License", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 65536 }, "variants": [],
+      "summary": "Larger Llama 4 sibling with 128 experts and 17B active parameters. Total size not re-verified in this audit.",
+      "caveats": ["Server-class."],
+      "links": { "official": "https://ai.meta.com/blog/llama-4-multimodal-intelligence/" }
+    },
+    {
+      "id": "deepseek-r1", "name": "DeepSeek-R1 (and distills)", "family": "DeepSeek-R1", "vendor": "DeepSeek", "kind": "open-weight-server",
+      "arch": "full model: large MoE; distills: dense 7B-70B", "params": { "totalB": null, "activeB": null, "basis": "rough" },
+      "contextMax": null, "modalities": ["text"], "tasks": ["reasoning", "coding"],
+      "license": "MIT", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 65536 }, "variants": [],
+      "summary": "DeepSeek released R1 under MIT plus smaller distilled models (LM Studio lists 7B, 8B, 14B, 32B, 70B). The full R1 is server-scale; the distills are the local branch, and are older than the Qwen3.5/3.8 and Gemma 4 generations.",
+      "caveats": ["Legacy reference; no sizes verified in this audit."],
+      "links": { "official": "https://deepseek.com/en/news/deepseek-r1/", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "qwen3-dense", "name": "Qwen3 (4B / 8B / 14B / 32B)", "family": "Qwen3", "vendor": "Alibaba Qwen", "kind": "open-weight",
+      "arch": "dense", "params": { "totalB": null, "activeB": null, "basis": "vendor" },
+      "contextMax": null, "modalities": ["text"], "tasks": ["general", "reasoning", "coding"],
+      "license": "Open weights (see model cards)", "status": "legacy", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 98304 }, "variants": [],
+      "summary": "First-generation Qwen3 dense line with switchable thinking mode. Rough Q4-class sizes from the previous Atlas snapshot (unverified here): 4B ~2-3 GB, 8B ~5 GB, 14B ~8-10 GB, 32B ~19-21 GB. Qwen3.5 and Qwen3.8 are the newer generations.",
+      "caveats": ["Sizes are rough and not verified in this audit."],
+      "links": { "official": "https://github.com/QwenLM/Qwen3", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "qwen3-vl", "name": "Qwen3-VL (2B / 4B / 8B / 30B-A3B / 32B)", "family": "Qwen3-VL", "vendor": "Alibaba Qwen", "kind": "open-weight",
+      "arch": "vision-language, dense and MoE sizes", "params": { "totalB": null, "activeB": null, "basis": "vendor" },
+      "contextMax": null, "modalities": ["text", "image"], "tasks": ["vision", "reasoning"],
+      "license": "See model cards", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 98304 }, "variants": [],
+      "summary": "Vision-language specialists for screenshots, documents and visual reasoning. Qwen3.5 and Qwen3.8 are natively multimodal, so they cover many of the same use cases in one model.",
+      "caveats": ["Sizes not verified in this audit."],
+      "links": { "official": "https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct", "hf": "Qwen/Qwen3-VL-8B-Instruct", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "glm-5.3", "name": "GLM-5.3", "family": "GLM", "vendor": "Z.ai", "kind": "cloud",
+      "arch": "mixture-of-experts", "params": { "totalB": 753, "activeB": 40, "basis": "vendor" },
+      "contextMax": 1000000, "modalities": ["text"], "tasks": ["coding", "agent", "reasoning"],
+      "license": "See model card", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 65536 }, "variants": [],
+      "summary": "LM Studio lists GLM-5.3 as a cloud-only model: 753B total / 40B active, coding and agentic focus. GLM-5.3-Flash (320B / 18B active, with vision) is also cloud-only there.",
+      "caveats": ["Cloud reference point, not a local option."],
+      "links": { "official": "https://lmstudio.ai/models", "lmStudio": "https://lmstudio.ai/models" }
+    },
+    {
+      "id": "gpt-5.5", "name": "GPT-5.5", "family": "GPT", "vendor": "OpenAI", "kind": "cloud",
+      "arch": "proprietary", "params": { "totalB": null, "activeB": null, "basis": "vendor" },
+      "contextMax": null, "modalities": ["text", "image"], "tasks": ["general", "coding", "reasoning", "agent"],
+      "license": "Proprietary", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 0 }, "variants": [],
+      "summary": "OpenAI (23 Apr 2026): designed for coding, research, data analysis, documents, software use and multi-step tool work. Cloud only.",
+      "caveats": ["Reference point for what cloud frontier models offer; not a like-for-like benchmark match for small local models."],
+      "links": { "official": "https://openai.com/index/introducing-gpt-5-5/" }
+    },
+    {
+      "id": "claude-opus-5", "name": "Claude Opus 5", "family": "Claude", "vendor": "Anthropic", "kind": "cloud",
+      "arch": "proprietary", "params": { "totalB": null, "activeB": null, "basis": "vendor" },
+      "contextMax": null, "modalities": ["text", "image"], "tasks": ["general", "coding", "reasoning", "agent"],
+      "license": "Proprietary", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 0 }, "variants": [],
+      "summary": "Anthropic (24 Jul 2026): positioned for coding, knowledge work and scientific research. Cloud only.",
+      "caveats": [],
+      "links": { "official": "https://www.anthropic.com/news/claude-opus-5" }
+    },
+    {
+      "id": "grok-4.7", "name": "Grok 4.7", "family": "Grok", "vendor": "SpaceXAI", "kind": "cloud",
+      "arch": "proprietary", "params": { "totalB": null, "activeB": null, "basis": "vendor" },
+      "contextMax": null, "modalities": ["text"], "tasks": ["coding", "reasoning", "general"],
+      "license": "Proprietary", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 0 }, "variants": [],
+      "summary": "SpaceXAI (21 Sep 2026): described as its most powerful model for coding and knowledge work. Cloud only.",
+      "caveats": [],
+      "links": { "official": "https://x.ai/news/grok-4-7" }
+    },
+    {
+      "id": "gemini-3.5-flash", "name": "Gemini 3.5 Flash", "family": "Gemini", "vendor": "Google", "kind": "cloud",
+      "arch": "proprietary", "params": { "totalB": null, "activeB": null, "basis": "vendor" },
+      "contextMax": null, "modalities": ["text", "image"], "tasks": ["general", "coding", "reasoning", "vision", "agent"],
+      "license": "Proprietary", "status": "stable", "recommendable": false,
+      "kv": { "basis": "rough", "bytesPerToken": 0 }, "variants": [],
+      "summary": "Google's Gemini 3.5 Flash, introduced as the first model of its next generation, combining advanced intelligence with high speed. Cloud only.",
+      "caveats": [],
+      "links": { "official": "https://blog.google/intl/de-de/produkte/suchen-entdecken/gemini-app-io-2026/" }
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "qwen-code", "name": "Qwen Code", "featured": true, "license": "Apache 2.0", "url": "https://github.com/QwenLM/qwen-code", "docs": "https://qwenlm.github.io/qwen-code-docs/", "download": "https://github.com/QwenLM/qwen-code/releases",
+      "summary": "Open-source coding agent that started as a fork of Google's Gemini CLI (v0.8.2) and has since developed independently.",
+      "facts": {
+        "cli": "yes", "desktop": "yes", "ide": "yes", "localModels": "yes", "mcp": "yes", "subagents": "yes", "skills": "yes", "planMode": "yes", "sandbox": "yes"
+      },
+      "details": { "interfaces": "Terminal UI, headless mode, VS Code / Zed / JetBrains extensions, desktop app (macOS, Windows, Linux), HTTP+SSE daemon, TypeScript/Python/Java SDKs", "providers": "OpenAI, Anthropic, Gemini, Qwen, and any third-party or local model (Ollama / vLLM listed)", "maturity": "Repository showed ~27.3k GitHub stars on the curation date; desktop releases carry 0.0.x version tags, so the desktop app is early." },
+      "source": "https://github.com/QwenLM/qwen-code", "verifiedOn": "2026-09-30"
+    },
+    {
+      "id": "opencode", "name": "OpenCode", "featured": false, "license": "MIT", "url": "https://opencode.ai/", "docs": "https://opencode.ai/docs/", "download": "https://opencode.ai/download",
+      "summary": "Open-source terminal-first coding agent with a desktop beta and 75+ providers via the AI SDK and Models.dev.",
+      "facts": { "cli": "yes", "desktop": "beta", "ide": "yes", "localModels": "yes", "mcp": "yes", "subagents": "yes", "skills": "unverified", "planMode": "yes", "sandbox": "unverified" },
+      "details": { "interfaces": "CLI/TUI, desktop app (beta), web, VS Code integration", "providers": "75+ providers; local Ollama, LM Studio and llama.cpp documented via OpenAI-compatible base URLs", "maturity": "Repository (anomalyco/opencode) showed ~211k GitHub stars on the curation date. Built-in build (full access), plan (read-only) and general subagent." },
+      "source": "https://github.com/anomalyco/opencode", "verifiedOn": "2026-09-30"
+    },
+    {
+      "id": "goose", "name": "Goose", "featured": false, "license": "Apache 2.0", "url": "https://block.github.io/goose/", "docs": "https://block.github.io/goose/",
+      "summary": "General-purpose extensible agent, created by Block and now maintained under the Linux Foundation's Agentic AI Foundation; MCP is central to its extension model.",
+      "facts": { "cli": "yes", "desktop": "yes", "ide": "yes", "localModels": "yes", "mcp": "yes", "subagents": "unverified", "skills": "unverified", "planMode": "unverified", "sandbox": "unverified" },
+      "details": { "interfaces": "Desktop app (macOS, Linux, Windows), CLI, API; acts as an Agent Client Protocol server for VS Code, Zed and JetBrains", "providers": "Anthropic, OpenAI, Azure, Bedrock, OpenRouter and local models via Ollama", "maturity": "First released January 2025; governance moved to the Agentic AI Foundation (announced Dec 2025, transfer completed April 2026 per Wikipedia)." },
+      "source": "https://en.wikipedia.org/wiki/Goose_(AI_agent)", "verifiedOn": "2026-09-30"
+    },
+    {
+      "id": "openhands", "name": "OpenHands", "featured": false, "license": "MIT (core; check each repository)", "url": "https://github.com/OpenHands/OpenHands", "docs": "https://docs.openhands.dev/",
+      "summary": "Software-development agent platform: browser client (Agent Canvas), Python Software Agent SDK with an agent server, CLI, plus optional cloud and enterprise offerings.",
+      "facts": { "cli": "yes", "desktop": "no", "ide": "unverified", "localModels": "unverified", "mcp": "yes", "subagents": "unverified", "skills": "unverified", "planMode": "unverified", "sandbox": "yes" },
+      "details": { "interfaces": "Agent Canvas web UI (localhost), CLI, SDK/REST/WebSocket agent server, OpenHands Cloud", "providers": "LLM-agnostic; can also drive other agents through the Agent Client Protocol", "maturity": "Repository (renamed from All-Hands-AI to OpenHands/OpenHands) showed ~89.6k GitHub stars. Docker sandbox is optional but recommended." },
+      "source": "https://github.com/All-Hands-AI/OpenHands", "verifiedOn": "2026-09-30"
+    },
+    {
+      "id": "cline", "name": "Cline", "featured": false, "license": "Apache 2.0", "url": "https://github.com/cline/cline", "docs": "https://github.com/cline/cline",
+      "summary": "IDE-centred coding agent with explicit approval for file edits and terminal commands, plan/act modes and checkpoints.",
+      "facts": { "cli": "yes", "desktop": "no", "ide": "yes", "localModels": "yes", "mcp": "yes", "subagents": "unverified", "skills": "unverified", "planMode": "yes", "sandbox": "unverified" },
+      "details": { "interfaces": "VS Code extension, JetBrains plugin, CLI, Kanban board, Node SDK", "providers": "Anthropic, OpenAI, Gemini, OpenRouter, Bedrock, Azure/Vertex, any OpenAI-compatible API; Ollama and LM Studio for local models", "maturity": "~67.6k GitHub stars on the curation date. Every edit and command requires approval unless auto-approve is enabled." },
+      "source": "https://github.com/cline/cline", "verifiedOn": "2026-09-30"
+    },
+    {
+      "id": "deepseek-harness", "name": "DeepSeek Harness", "featured": false, "license": "MIT", "url": "https://github.com/deepseek-ai/deepseek-harness", "docs": "https://github.com/deepseek-ai/deepseek-harness",
+      "summary": "DeepSeek's agent harness with an everything-is-a-plugin architecture (built on Cordis). Marked developer preview with a warning that compatibility-breaking changes are expected.",
+      "facts": { "cli": "yes", "desktop": "unverified", "ide": "unverified", "localModels": "unverified", "mcp": "unverified", "subagents": "unverified", "skills": "unverified", "planMode": "unverified", "sandbox": "unverified" },
+      "details": { "interfaces": "Web UI (default http://127.0.0.1:3080) and the dsh CLI; desktop is referenced in its build targets", "providers": "Not stated in the README content reviewed", "maturity": "Developer preview. The GitHub page showed ~238.7k stars; stars are popularity, not maturity." },
+      "source": "https://github.com/deepseek-ai/deepseek-harness", "verifiedOn": "2026-09-30"
+    },
+    {
+      "id": "bionic", "name": "Bionic (LM Studio)", "featured": false, "license": "Proprietary (LM Studio)", "url": "https://lmstudio.ai/docs/bionic/models", "docs": "https://lmstudio.ai/docs/bionic/models",
+      "summary": "LM Studio's agent environment. A session can run on a local model, a cloud model (LM Studio Secure Cloud, zero data retention) or a remote model on another device via LM Link, and supports skills.",
+      "facts": { "cli": "unverified", "desktop": "yes", "ide": "unverified", "localModels": "yes", "mcp": "unverified", "subagents": "unverified", "skills": "yes", "planMode": "unverified", "sandbox": "unverified" },
+      "details": { "interfaces": "Part of the LM Studio desktop app", "providers": "Local, cloud and remote models chosen per session", "maturity": "Details beyond the model-selection docs were not verified." },
+      "source": "https://lmstudio.ai/docs/bionic/models", "verifiedOn": "2026-09-30"
+    }
+  ],
+  "concepts": [
+    { "id": "model", "name": "Model", "layer": 1, "definition": "The trained neural network: weights plus architecture (parameters, experts, context length, modalities).", "examples": "Qwen3.8 27B, Gemma 4 12B, gpt-oss-20b", "notThis": "Not the app you chat in and not the software that runs it." },
+    { "id": "runtime", "name": "Runtime", "layer": 2, "definition": "Software that loads model weights and executes them on your hardware: quantised formats, GPU/CPU split, KV cache, an API endpoint.", "examples": "llama.cpp, LM Studio, Ollama, vLLM, SGLang, MLX", "notThis": "A runtime does not decide what to do; it only produces tokens." },
+    { "id": "harness", "name": "Harness", "layer": 3, "definition": "The layer that wraps a model in an agent loop: prompts, tool registry, permissions, context management, planning, sub-agents.", "examples": "Qwen Code, OpenCode, Goose, OpenHands, Cline, DeepSeek Harness", "notThis": "Not a model and not a runtime. It connects to a runtime or a cloud API." },
+    { "id": "agent", "name": "Agent", "layer": 4, "definition": "The running system that acts: model + runtime + harness + tools working together on a task.", "examples": "Qwen Code driving Qwen3-Coder-Next served by llama.cpp", "notThis": "An agent is a behaviour of the whole stack, not a single downloadable file." },
+    { "id": "mcp", "name": "MCP", "layer": 5, "definition": "Model Context Protocol: an open protocol for exposing tools, resources and prompts from servers to AI applications (clients).", "examples": "A filesystem MCP server, a database MCP server", "notThis": "Not a model, not a runtime, and not a security guarantee: review what each server can access." },
+    { "id": "skills", "name": "Skills", "layer": 5, "definition": "Reusable instructions, scripts and workflows an agent can load on demand for a specific kind of task.", "examples": "A code-review skill, a release-notes skill", "notThis": "Different from MCP tools (which are callable capabilities) and from memory (which is state)." },
+    { "id": "memory", "name": "Memory", "layer": 5, "definition": "Information an application persists across sessions and feeds back into context: notes, preferences, project facts.", "examples": "A project notes file loaded at session start", "notThis": "Not the model's weights, not the context window, and not the KV cache." },
+    { "id": "rag", "name": "RAG", "layer": 5, "definition": "Retrieval-Augmented Generation: fetch relevant passages from an external index at question time and put them into the prompt.", "examples": "Search your PDFs, then answer using the retrieved chunks", "notThis": "Retrieval supplies context; it does not change the model or replace memory." }
+  ]
+}

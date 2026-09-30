@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: local-ai-atlas
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: HF_TOKEN   # optional: raises Hugging Face rate limits. Set the value in the Render dashboard, never in git.
+        sync: false
